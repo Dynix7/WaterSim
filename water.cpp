@@ -16,8 +16,8 @@ Camera camera = {
 };
 
 //Positions
-Vector3 planeCenter = {0.0, 0.0, 0.0};
-Vector3 lightCenter = {-15.0, 30.0, -45.0};
+Vector3 planeCenter = {0.0, -15.0, 0.0};
+Vector3 lightCenter = {-15.0, 25.0, -45.0};
 
 // Other Globals
 float time = 0.0;
@@ -46,17 +46,17 @@ int main() {
         
         //Any Rendering Stuff
         BeginDrawing();
-            ClearBackground(WHITE);
+            ClearBackground(SKYBLUE);
             DrawFPS(5, 5);
 
             BeginMode3D(camera);
                 DrawSphere(lightCenter, 5.0, YELLOW); // just to show location of light
 
                 BeginShaderMode(waterShader);
-                    rlEnableBackfaceCulling();
+                    rlDisableBackfaceCulling();
                     DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);
                     DrawModelWires(planeModel, planeCenter, 1.0, BLACK);
-                    rlDisableBackfaceCulling();
+                    rlEnableBackfaceCulling();
                 EndShaderMode();
 
             EndMode3D();

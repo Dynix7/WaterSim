@@ -19,14 +19,14 @@ uniform float time;
 #define PI 3.141592653589
 
 // Wave Properties
-int NUM_WAVES = 16;
-float AMP = 1;
+int NUM_WAVES = 20;
+float AMP = 1.2;
 float FREQ = 10;
-float SPEED = 0.25;
+float SPEED = 0.15;
 
 //Declartions
 float calcRotate(vec2 UV, float angle);
-float wave(vec2 UV, float amp, float freq, float speed, float time, float angle);
+float innerWave(vec2 UV, float freq, float speed, float time, float angle);
 
 
 void main() {
@@ -39,18 +39,33 @@ void main() {
     float waveSum = 0.0;
     float currentWave = 0.0;
 
-    // Partial Derivatives for Wave
-    float ddx = 0.0;
-    float ddy = 0.0;
-   for (int i = 1; i <= NUM_WAVES; i++) {
-        currentWave = wave(UV, AMP, FREQ, SPEED, time, currentAngle);
+    float innerPart = 0.0; //freq(X + time*speed)
+    float sinePart = 0.0; //a * sin(freq(X + time*speed))
 
+    // Partial Derivatives for Wave
+    float ddx = 0.0; // Binormal i think
+    float ddy = 0.0; // Tangent I think
+
+    //Full Function is e^(a * sin(freq(X + time*speed)))
+    //Calculation is split to prevent recalculating when doing the deritvatives
+    for (int i = 1; i <= NUM_WAVES; i++) {
+        innerPart = innerWave(UV, FREQ, SPEED, time, currentAngle);
+        sinePart = AMP * sin(innerPart);
+        currentWave = exp(sinePart - 1);  //Full Wave Function
+
+        //Calculating the partial derivatives
+        //lowk just in desmos guessing until graphs match
+        //Current thingy: e^{\left(a\left(\sin\left(p\left(\cos x+\sin x+t\right)\right)\right)-1\right)}\cdot ap\cos\left(p\left(\cos x+\sin x+t\right)\right)\cdot\left(\cos x-\sin x\right)
+
+        // Adjusts Angle and Makes Waves Smaller
+        FREQ *= 1.2;
+        AMP *= 0.8;
+        currentAngle = float(i) * 0.5;
+
+        waveSum += currentWave;
    }
 
-
-    //Calculation of Derivative and Normal
-
-
+    finalPos += waveSum;
 
     // Finalize data stuff 
     fragTexCoord = vertexTexCoord;
@@ -64,11 +79,11 @@ float calcRotate(vec2 UV, float angle) {
     return final;
 }
 
-float wave(vec2 UV, float amp, float freq, float speed, float time, float angle) {
-    //Function is e^(a * sin(freq(X + time*speed)))
+float innerWave(vec2 UV, float freq, float speed, float time, float angle) {
+    //Full Function is e^(a * sin(freq(X + time*speed)))
+    // This calculates the freq(X + time*speed) Part
     float X = calcRotate(UV, angle);
 
-    float sineResult = amp * sin(freq * (X + (time * speed)));
-    float wave = exp(sineResult); //e^sineResult
-    return wave;
+    float sineResult = freq * (X + (time * speed));
+    return sineResult;
 }
