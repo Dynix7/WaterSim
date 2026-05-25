@@ -1,7 +1,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
-#define GLSL_VERSION 330
+#define GLSL_VERSION 430
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
@@ -16,7 +16,7 @@ Camera camera = {
 };
 
 //Positions
-Vector3 planeCenter = {0.0, -15.0, 0.0};
+Vector3 planeCenter = {0.0, -25.0, 0.0};
 Vector3 lightCenter = {-15.0, 25.0, -45.0};
 
 // Other Globals
@@ -30,8 +30,9 @@ int main() {
 
     // Shader Setup
     Shader waterShader = LoadShader("vert.vs", "frag.fg");
-    int timeLocation = GetShaderLocation(waterShader, "time");
+    // Planned: Possibly a Skybox shader
 
+    int timeLocation = GetShaderLocation(waterShader, "time");
     // Load Plane and assign shader
     Mesh planeMesh = GenMeshPlane(50, 50, 250, 250);
     Model planeModel = LoadModelFromMesh(planeMesh);
@@ -39,7 +40,7 @@ int main() {
 
     // Main Loop
     while (!WindowShouldClose()) {
-        //Things Update Per loop
+        //Things To Update Per loop
         UpdateCamera(&camera, CAMERA_FREE);
         time = (float) GetTime();
         SetShaderValue(waterShader, timeLocation, &time, SHADER_UNIFORM_FLOAT);
@@ -55,7 +56,7 @@ int main() {
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
                     DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);
-                    DrawModelWires(planeModel, planeCenter, 1.0, BLACK);
+                    DrawModelWires(planeModel, planeCenter, 1.0, WHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
 
