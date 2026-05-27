@@ -1,9 +1,8 @@
-CFLAGS = -Wall -Wextra -g -Iinclude 
-LIBS = -lraylib -lGL -lm -lpthread -dl -lrt -lX11 -DGRAPHICS_API_OPENGL_43
+CFLAGS = -Wall -Wextra -g -Iinclude -Llib -DGRAPHICS_API_OPENGL_43
+LINK = -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
-water: water.cpp vert.vs frag.fg
-	g++ $(CFLAGS) water.cpp $(LIBS) -o water
-	./water
+water: src/water.cpp src/vert.vs src/frag.fg
+	g++ $(CFLAGS) src/water.cpp $(LINK) -o water
 
 rm: water
 	rm water

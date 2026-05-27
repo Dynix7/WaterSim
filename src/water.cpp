@@ -24,15 +24,17 @@ float time = 0.0;
 
 int main() {
     // Setup Window
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chill Water fr");
     SetTargetFPS(240);
     DisableCursor();
 
     // Shader Setup
-    Shader waterShader = LoadShader("vert.vs", "frag.fg");
-    // Planned: Possibly a Skybox shader
+    Shader waterShader = LoadShader("src/vert.vs", NULL);
 
     int timeLocation = GetShaderLocation(waterShader, "time");
+    waterShader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(waterShader, "viewPos");
+
     // Load Plane and assign shader
     Mesh planeMesh = GenMeshPlane(50, 50, 250, 250);
     Model planeModel = LoadModelFromMesh(planeMesh);
@@ -43,25 +45,27 @@ int main() {
         //Things To Update Per loop
         UpdateCamera(&camera, CAMERA_FREE);
         time = (float) GetTime();
+
         SetShaderValue(waterShader, timeLocation, &time, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(waterShader, waterShader.locs[SHADER_LOC_VECTOR_VIEW], &camera.position, SHADER_UNIFORM_FLOAT);
         
         //Any Rendering Stuff
         BeginDrawing();
             ClearBackground(SKYBLUE);
-            DrawFPS(5, 5);
+            
 
             BeginMode3D(camera);
-                DrawSphere(lightCenter, 5.0, YELLOW); // just to show location of light
+                DrawSphere(lightCenter, 2.5, YELLOW); // just to show location of light
 
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
-                    DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);
-                    DrawModelWires(planeModel, planeCenter, 1.0, WHITE);
+                    DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);     
+                    DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
 
             EndMode3D();
-
+            DrawFPS(5, 5);
         EndDrawing();
     }
 
@@ -71,3 +75,4 @@ int main() {
     CloseWindow();
     return 0;
 }
+

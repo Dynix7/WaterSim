@@ -9,10 +9,14 @@ in vec3 vertexNormal;
 //Data sent to fragment shader
 out vec2 fragTexCoord;
 out vec4 fragColor;
-out vec3 outNormal; // For Light Calculations in Fragment Shader
+out vec3 fragPosition;
+out vec3 fragNormal; // For Light Calculations in Fragment Shader
 
 // Data thats from cpu
-uniform mat4 mvp;
+uniform mat4 mvp; // Model->World, World->View, View->Projection
+uniform mat4 matModel; //Model->World Used For Lighting
+uniform mat4 matNormal; //Local Normal to World Normal
+
 uniform float time;
 
 // Constants
@@ -20,7 +24,7 @@ uniform float time;
 #define PI 3.141592653589
 
 // Wave Properties
-const int NUM_WAVES = 24;
+const int NUM_WAVES = 32;
 float AMP = 1.3;
 float FREQ = 10;
 float SPEED = 0.15;
@@ -28,7 +32,7 @@ float SPEED = 0.15;
 //Adjustments Per Loop
 const float AMPMult = 0.8;
 const float FREQMult = 1.2;
-const float SPEEDMult = 1.07;
+const float SPEEDMult = 1.015;
 
 //Declartions
 float calcRotate(vec2 UV, float angle);
@@ -47,7 +51,7 @@ void main() {
 
     float innerPart = 0.0; //freq(X + time*speed)
     float sinePart = 0.0; //a * sin(freq(X + time*speed))
-    float sharedDevPart = 0.0;
+    float sharedDevPart = 0.0; //e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b
 
     // Partial Derivatives for Wave
     float ddx = 0.0; // Binormal i think
@@ -62,8 +66,8 @@ void main() {
         currentWave = exp(sinePart - 1);  //Full Wave Function
 
         //Calculating the partial derivatives
-        // for X: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b*cos(theta)
-        // for Y: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b*sin(theta)
+        // for X: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * cos(theta)
+        // for Y: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * sin(theta)
         sharedDevPart = currentWave * (AMP * cos(innerPart)) * FREQ;
         ddx += sharedDevPart * cos(currentAngle);
         ddy += sharedDevPart * sin(currentAngle);
@@ -71,21 +75,25 @@ void main() {
         // Adjusts Angle and Makes Waves Smaller
         FREQ *= FREQMult;
         AMP *= AMPMult;
-        SPEED * SPEEDMult;
+        SPEED *= SPEEDMult;
         currentAngle = float(i) * 0.5;
 
         waveSum += currentWave;
    }
+
     finalPos.y += waveSum;
 
     //Calculates the normal (basically cross product) then normalizes it
-    vec3 calcNormal = vec3(-ddx, -ddy, 1);
-    outNormal = normalize(calcNormal);
+    vec3 calcNormal = vec3(-ddx, 1.0, -ddy);
+    calcNormal = vec3(matNormal * vec4(calcNormal, 0.0)); // Turns Normal into World Space
+    fragNormal = normalize(calcNormal);
 
     // Finalize data stuff 
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
-    gl_Position = mvp * vec4(finalPos, 1.0) ;
+    fragPosition = vec3(matModel * vec4(finalPos, 1.0));
+
+    gl_Position = mvp * vec4(finalPos, 1.0);
 }
 
 float calcRotate(vec2 UV, float angle) {
