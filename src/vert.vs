@@ -24,13 +24,13 @@ uniform float time;
 #define PI 3.141592653589
 
 // Wave Properties
-const int NUM_WAVES = 32;
-float AMP = 1.3;
-float FREQ = 10;
-float SPEED = 0.15;
+const int NUM_WAVES = 24;
+float AMP = 1.0;
+float FREQ = 0.3;
+float SPEED = 4.5;
 
 //Adjustments Per Loop
-const float AMPMult = 0.8;
+const float AMPMult = 0.78;
 const float FREQMult = 1.2;
 const float SPEEDMult = 1.015;
 
@@ -41,7 +41,7 @@ float innerWave(vec2 UV, float freq, float speed, float time, float angle);
 
 void main() {
     vec3 finalPos = vertexPosition;
-    vec2 UV = vertexTexCoord;
+    vec2 UV = vertexPosition.xz;
 
     float currentAngle = 0.0;
 
@@ -69,9 +69,13 @@ void main() {
         // for X: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * cos(theta)
         // for Y: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * sin(theta)
         sharedDevPart = currentWave * (AMP * cos(innerPart)) * FREQ;
-        ddx += sharedDevPart * cos(currentAngle);
-        ddy += sharedDevPart * sin(currentAngle);
-        
+
+        // The Normals get really noisy when you add up the really small waves
+        // So idk how to fix it so I'm just going to add a limit here for now
+        if (i <= NUM_WAVES/2) { 
+            ddx += sharedDevPart * cos(currentAngle);
+            ddy += sharedDevPart * sin(currentAngle);
+        }
         // Adjusts Angle and Makes Waves Smaller
         FREQ *= FREQMult;
         AMP *= AMPMult;

@@ -30,13 +30,15 @@ int main() {
     DisableCursor();
 
     // Shader Setup
-    Shader waterShader = LoadShader("src/vert.vs", NULL);
+    Shader waterShader = LoadShader("src/vert.vs", "src/frag.fs");
+
 
     int timeLocation = GetShaderLocation(waterShader, "time");
     waterShader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(waterShader, "viewPos");
+    int lightLocation = GetShaderLocation(waterShader, "lightPos");
 
     // Load Plane and assign shader
-    Mesh planeMesh = GenMeshPlane(50, 50, 250, 250);
+    Mesh planeMesh = GenMeshPlane(50, 50, 255, 255);
     Model planeModel = LoadModelFromMesh(planeMesh);
     planeModel.materials[0].shader = waterShader;
 
@@ -47,20 +49,20 @@ int main() {
         time = (float) GetTime();
 
         SetShaderValue(waterShader, timeLocation, &time, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(waterShader, waterShader.locs[SHADER_LOC_VECTOR_VIEW], &camera.position, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(waterShader, lightLocation, &lightCenter, SHADER_UNIFORM_VEC3);
+        SetShaderValue(waterShader, waterShader.locs[SHADER_LOC_VECTOR_VIEW], &camera.position, SHADER_UNIFORM_VEC3);
         
         //Any Rendering Stuff
         BeginDrawing();
             ClearBackground(SKYBLUE);
             
-
             BeginMode3D(camera);
                 DrawSphere(lightCenter, 2.5, YELLOW); // just to show location of light
 
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
                     DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);     
-                    DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
+                    //DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
 
