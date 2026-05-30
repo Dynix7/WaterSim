@@ -16,7 +16,7 @@ Camera camera = {
 };
 
 //Positions
-Vector3 planeCenter = {0.0, -25.0, 0.0};
+Vector3 planeCenter = {0.0, -10.0, 0.0};
 Vector3 lightCenter = {-15.0, 25.0, -45.0};
 
 // Other Globals
@@ -62,7 +62,7 @@ int main() {
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
                     DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);     
-                    //DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
+                    DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
 

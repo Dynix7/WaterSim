@@ -24,7 +24,7 @@ uniform float time;
 #define PI 3.141592653589
 
 // Wave Properties
-const int NUM_WAVES = 24;
+const int NUM_WAVES = 32;
 float AMP = 1.0;
 float FREQ = 0.3;
 float SPEED = 4.5;
@@ -33,10 +33,11 @@ float SPEED = 4.5;
 const float AMPMult = 0.78;
 const float FREQMult = 1.2;
 const float SPEEDMult = 1.015;
+const float warpStrength = 1.9;
 
 //Declartions
 float calcRotate(vec2 UV, float angle);
-float innerWave(vec2 UV, float freq, float speed, float time, float angle);
+float innerWave(float X, float freq, float speed, float time);
 
 
 void main() {
@@ -44,7 +45,7 @@ void main() {
     vec2 UV = vertexPosition.xz;
 
     float currentAngle = 0.0;
-
+    float X = 0.0; // Base Input
     //Calculation Of Wave 
     float waveSum = 0.0;
     float currentWave = 0.0;
@@ -61,7 +62,8 @@ void main() {
     // Original function from GPU gems is the Gernster Wave but like idk its complicated
     //Calculation is split to prevent recalculating when doing the deritvatives
     for (int i = 1; i <= NUM_WAVES; i++) {
-        innerPart = innerWave(UV, FREQ, SPEED, time, currentAngle);
+        X = calcRotate(UV, currentAngle);
+        innerPart = innerWave(X, FREQ, SPEED, time);
         sinePart = AMP * sin(innerPart);
         currentWave = exp(sinePart - 1);  //Full Wave Function
 
@@ -72,10 +74,15 @@ void main() {
 
         // The Normals get really noisy when you add up the really small waves
         // So idk how to fix it so I'm just going to add a limit here for now
-        if (i <= NUM_WAVES/2) { 
+        if (AMP > 0.06) {
             ddx += sharedDevPart * cos(currentAngle);
             ddy += sharedDevPart * sin(currentAngle);
-        }
+        }  
+
+        // Domain Warping thingy where it looks like the waves are pushing eachother
+        UV.x -= sharedDevPart * cos(currentAngle) * warpStrength;
+        UV.y -= sharedDevPart * sin(currentAngle) * warpStrength;
+
         // Adjusts Angle and Makes Waves Smaller
         FREQ *= FREQMult;
         AMP *= AMPMult;
@@ -88,10 +95,12 @@ void main() {
     finalPos.y += waveSum;
 
     //Calculates the normal (basically cross product) then normalizes it
-    vec3 calcNormal = vec3(-ddx, 1.0, -ddy);
+    vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
+    calcNormal = mix(calcNormal, vec3(0.0, 1.0, 0.0), 0.03); // Some Smoothing
+
     calcNormal = vec3(matNormal * vec4(calcNormal, 0.0)); // Turns Normal into World Space
     fragNormal = normalize(calcNormal);
-
+    
     // Finalize data stuff 
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
@@ -105,10 +114,8 @@ float calcRotate(vec2 UV, float angle) {
     return final;
 }
 
-float innerWave(vec2 UV, float freq, float speed, float time, float angle) {
+float innerWave(float X, float freq, float speed, float time) {
     // This calculates the freq(X + time*speed) Part
-    float X = calcRotate(UV, angle);
-
     float sineResult = freq * (X + (time * speed));
     return sineResult;
 }
