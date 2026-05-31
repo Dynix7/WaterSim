@@ -12,11 +12,12 @@ uniform vec3 viewPos;
 uniform vec3 lightPos;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
+uniform mat4 matNormal; // For per pixel normal caluclation
 
-vec4 lightColor = vec4(vec3(121.0, 217.0, 248.0)/255.0, 1.0);
-const float ambient = 0.75;
+vec4 lightColor = vec4(vec3(255.0, 255.0, 255.0)/255.0, 1.0);
+const float ambient = 0.55;
 const float specFactor = 128.0;
-const float specMult = 4.5;
+const float specMult = 5.5;
 
 void main() {
     //vec4 texColor = texture(texture0, fragTexCoord); I currently don't have a texture
@@ -33,9 +34,8 @@ void main() {
     // Fresnel Calculation wikipedia.org/wiki/Schlick's_approximation
     float R0 = 0.020332; // From Refractive Indices of Air and Water. 1.0 vs 1.333
     float normalDotView = max(dot(normal, viewDir), 0.0);
-    float fresnel = R0 + (1.0 - R0) * pow((1.0 - normalDotView), 5); 
+    float fresnel = pow((1.0 - normalDotView), 5); 
     // pow((1.0 - normalDotView), 5) can also be used by itself since like the other terms r basically just 1 
-
 
     //Specular Reflection Calculation
     float specular = 0.0;
@@ -45,11 +45,10 @@ void main() {
         specular = pow(specular, specFactor) * specMult * fresnel;
     }
 
-
     // Combining Everything
     vec3 baseColor = colDiffuse.rgb * fragColor.rgb;
 
-    vec3 diffuse = diffuseFactor * baseColor * lightColor.rgb;
+    vec3 diffuse = diffuseFactor * baseColor;
     vec3 ambientColor = baseColor * ambient;
     
     vec3 result = clamp(diffuse + ambientColor + specular, 0.0, 1.0);

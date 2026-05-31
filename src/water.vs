@@ -11,6 +11,7 @@ out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragPosition;
 out vec3 fragNormal; // For Light Calculations in Fragment Shader
+out vec2 startUV; // For pixel perfect normals
 
 // Data thats from cpu
 uniform mat4 mvp; // Model->World, World->View, View->Projection
@@ -18,22 +19,19 @@ uniform mat4 matModel; //Model->World Used For Lighting
 uniform mat4 matNormal; //Local Normal to World Normal
 
 uniform float time;
-
-// Constants
-#define E 2.718281828459
-#define PI 3.141592653589
+uniform int NUM_WAVES;
 
 // Wave Properties
-const int NUM_WAVES = 32;
-float AMP = 1.0;
+
+float AMP = 1.1;
 float FREQ = 0.3;
 float SPEED = 4.5;
 
 //Adjustments Per Loop
 const float AMPMult = 0.78;
 const float FREQMult = 1.2;
-const float SPEEDMult = 1.015;
-const float warpStrength = 1.9;
+const float SPEEDMult = 1.02;
+float warpStrength = 2.1;
 
 //Declartions
 float calcRotate(vec2 UV, float angle);
@@ -43,7 +41,7 @@ float innerWave(float X, float freq, float speed, float time);
 void main() {
     vec3 finalPos = vertexPosition;
     vec2 UV = vertexPosition.xz;
-
+    startUV = UV;
     float currentAngle = 0.0;
     float X = 0.0; // Base Input
     //Calculation Of Wave 
@@ -74,7 +72,7 @@ void main() {
 
         // The Normals get really noisy when you add up the really small waves
         // So idk how to fix it so I'm just going to add a limit here for now
-        if (AMP > 0.06) {
+        if (AMP > 0) {
             ddx += sharedDevPart * cos(currentAngle);
             ddy += sharedDevPart * sin(currentAngle);
         }  
@@ -82,7 +80,8 @@ void main() {
         // Domain Warping thingy where it looks like the waves are pushing eachother
         UV.x -= sharedDevPart * cos(currentAngle) * warpStrength;
         UV.y -= sharedDevPart * sin(currentAngle) * warpStrength;
-
+        
+        warpStrength *= 0.85;
         // Adjusts Angle and Makes Waves Smaller
         FREQ *= FREQMult;
         AMP *= AMPMult;
@@ -93,6 +92,7 @@ void main() {
    }
 
     finalPos.y += waveSum;
+    finalPos.y -= NUM_WAVES * 0.35;
 
     //Calculates the normal (basically cross product) then normalizes it
     vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
