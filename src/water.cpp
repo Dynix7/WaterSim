@@ -7,8 +7,10 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
-struct waveProperties {
-    int NUM_WAVES;
+// Struct for Wave Properties
+struct ShaderProperties {
+    // Vertex Shader
+    int numWaves;
 
     float startAmp;
     float startFreq;
@@ -18,22 +20,39 @@ struct waveProperties {
     float freqMult;
     float speedMult;
     float warpStrength;
+
+    //Fragment Shader
+    Vector4 lightColor;
+    float ambient;
+    float specFactor;
+    float specMult;
+
+    Vector3 viewPos;
+    Vector3 lightPos;
+    // Shader Locations
+    int locations[14];
 };
 
-struct waveProperties wave {
-    .NUM_WAVES = 24,
-    
-    .startAmp = 1.1,
-    .startFreq = 0.3,
-    .startSpeed = 4.5,
+typedef enum {
+    numWavesLoc = 0, // 0
 
-    .ampMult = 0.78,
-    .freqMult = 1.2,
-    .speedMult = 1.02,
-    .warpStrength = 2.1
-};
+    startAmpLoc,
+    startFreqLoc,
+    startSpeedLoc,
 
-int locations[9] = {0};
+    ampMultLoc,
+    freqMultLoc,
+    speedMultLoc,
+    warpStrengthLoc,
+
+    lightColorLoc,
+    ambientLoc,
+    specFactorLoc,
+    specMultLoc,
+
+    viewPosLoc,
+    lightPosLoc
+} ShaderLocations;
 
 //Camera Setup
 Camera camera = {
@@ -46,11 +65,39 @@ Camera camera = {
 
 //Positions
 Vector3 planeCenter = {0.0, 0.0, 0.0};
-Vector3 lightCenter = {90.0, 45.0, -5.0};
+Vector3 lightCenter = {180.0, 65.0, -10.0};
 Vector3 origin = {0.0, 0.0, 0.0};
+
+struct ShaderProperties wave = {
+    // Vertex Shader
+    .numWaves = 128,
+    
+    .startAmp = 1.3,
+    .startFreq = 0.3,
+    .startSpeed = 4.5,
+
+    .ampMult = 0.78,
+    .freqMult = 1.2,
+    .speedMult = 1.02,
+    .warpStrength = 2.2,
+
+    // Fragment Shader
+    .lightColor = (Vector4) {0.745, 0.918, 1.0, 1.0}, // Pretty Close to White
+    .ambient = 0.55,
+    .specFactor = 128.0,
+    .specMult = 5.5,
+    
+    .viewPos = camera.position,
+    .lightPos = lightCenter,
+    .locations = {0}
+};
+
 
 // Other Globals
 float time = 0.0;
+
+void getLocations(Shader waterShader, struct ShaderProperties *wave);
+void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave);
 
 int main() {
     // Setup Window
@@ -64,9 +111,7 @@ int main() {
     Shader skyboxShader = LoadShader("src/sky.vs", "src/sky.fs");
 
     int timeLocation = GetShaderLocation(waterShader, "time");
-    int lightLocation = GetShaderLocation(waterShader, "lightPos");
-    int numWavesLocation = GetShaderLocation(waterShader, "NUM_WAVES");
-    waterShader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(waterShader, "viewPos");
+    getLocations(waterShader, &wave);
 
     int cubemapType = MATERIAL_MAP_CUBEMAP;
     int environmentMapLoc = GetShaderLocation(skyboxShader, "environmentMap");
@@ -98,9 +143,7 @@ int main() {
         time = (float) GetTime();
 
         SetShaderValue(waterShader, timeLocation, &time, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(waterShader, lightLocation, &lightCenter, SHADER_UNIFORM_VEC3);
-        SetShaderValue(waterShader, numWavesLocation, &wave.NUM_WAVES, SHADER_UNIFORM_INT);
-        SetShaderValue(waterShader, waterShader.locs[SHADER_LOC_VECTOR_VIEW], &camera.position, SHADER_UNIFORM_VEC3);
+        updateWaveProperties(waterShader, &wave);
         
         //Any Rendering Stuff
         BeginDrawing();
@@ -143,4 +186,51 @@ int main() {
     UnloadShader(skyboxShader);
     CloseWindow();
     return 0;
+}
+
+void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probably shouldve used &wave but im C pilled
+    wave->locations[numWavesLoc] = GetShaderLocation(waterShader, "numWaves");
+
+    wave->locations[startAmpLoc] = GetShaderLocation(waterShader, "startAmp");
+    wave->locations[startFreqLoc] = GetShaderLocation(waterShader, "startFreq");
+    wave->locations[startSpeedLoc] = GetShaderLocation(waterShader, "startSpeed");
+
+    wave->locations[ampMultLoc] = GetShaderLocation(waterShader, "ampMult");
+    wave->locations[freqMultLoc] = GetShaderLocation(waterShader, "freqMult");
+    wave->locations[speedMultLoc] = GetShaderLocation(waterShader, "speedMult");
+    wave->locations[warpStrengthLoc] = GetShaderLocation(waterShader, "warpStrength");
+
+    wave->locations[lightColorLoc] = GetShaderLocation(waterShader, "lightColor");
+    wave->locations[ambientLoc] = GetShaderLocation(waterShader, "ambient");
+    wave->locations[specFactorLoc] = GetShaderLocation(waterShader, "specFactor");
+    wave->locations[specMultLoc] = GetShaderLocation(waterShader, "specMult");
+
+    wave->locations[viewPosLoc] = GetShaderLocation(waterShader, "viewPos");
+    wave->locations[lightPosLoc] = GetShaderLocation(waterShader, "lightPos");
+
+    waterShader.locs[SHADER_LOC_VECTOR_VIEW] = wave->locations[viewPosLoc];
+}
+
+void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave) {
+    wave->viewPos = camera.position;
+    wave->lightPos = lightCenter;
+
+    SetShaderValue(waterShader, wave->locations[numWavesLoc], &wave->numWaves, SHADER_UNIFORM_INT);
+    
+    SetShaderValue(waterShader, wave->locations[startAmpLoc], &wave->startAmp, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[startFreqLoc], &wave->startFreq, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[startSpeedLoc], &wave->startSpeed, SHADER_UNIFORM_FLOAT);
+
+    SetShaderValue(waterShader, wave->locations[ampMultLoc], &wave->ampMult, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[freqMultLoc], &wave->freqMult, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[speedMultLoc], &wave->speedMult, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[warpStrengthLoc], &wave->warpStrength, SHADER_UNIFORM_FLOAT);
+
+    SetShaderValue(waterShader, wave->locations[lightColorLoc], &wave->lightColor, SHADER_UNIFORM_VEC4);
+    SetShaderValue(waterShader, wave->locations[ambientLoc], &wave->ambient, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[specFactorLoc], &wave->specFactor, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[specMultLoc], &wave->specMult, SHADER_UNIFORM_FLOAT);
+
+    SetShaderValue(waterShader, wave->locations[viewPosLoc], &wave->viewPos, SHADER_UNIFORM_VEC3);
+    SetShaderValue(waterShader, wave->locations[lightPosLoc], &wave->lightPos, SHADER_UNIFORM_VEC3);
 }

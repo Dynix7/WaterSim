@@ -4,24 +4,132 @@
 in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragPosition;
-in vec3 fragNormal;
+in vec2 startUV;
 
 out vec4 finalColor;
 
-uniform vec3 viewPos;
-uniform vec3 lightPos;
+uniform float time;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 uniform mat4 matNormal; // For per pixel normal caluclation
 
-vec4 lightColor = vec4(vec3(255.0, 255.0, 255.0)/255.0, 1.0);
-const float ambient = 0.55;
-const float specFactor = 128.0;
-const float specMult = 5.5;
+uniform int numWaves;
+uniform float startAmp;
+uniform float startFreq;
+uniform float startSpeed;
+
+uniform float ampMult;
+uniform float freqMult;
+uniform float speedMult;
+uniform float warpStrength;
+
+//Fragment Shader
+uniform vec4 lightColor;
+uniform float ambient;
+uniform float specFactor;
+uniform float specMult;
+
+uniform vec3 viewPos;
+uniform vec3 lightPos;
+
+
+// Wave Properties
+struct ShaderProperties {
+    // Vertex Shader
+    int numWaves;
+
+    float startAmp;
+    float startFreq;
+    float startSpeed;
+
+    float ampMult;
+    float freqMult;
+    float speedMult;
+    float warpStrength;
+
+    //Fragment Shader
+    vec4 lightColor;
+    float ambient;
+    float specFactor;
+    float specMult;
+
+    vec3 viewPos;
+    vec3 lightPos;
+};
+
+ShaderProperties wave = ShaderProperties(
+    numWaves,
+
+    startAmp,
+    startFreq,
+    startSpeed,
+
+    ampMult,
+    freqMult,
+    speedMult,
+    warpStrength,
+
+    lightColor,
+    ambient,
+    specFactor,
+    specMult,
+
+    viewPos,
+    lightPos
+);
+
+float calcRotate(vec2 UV, float angle);
+float innerWave(float X, float freq, float speed, float time);
+
 
 void main() {
-    //vec4 texColor = texture(texture0, fragTexCoord); I currently don't have a texture
-    vec3 normal = normalize(fragNormal);
+    // Calculates Normal Per Pixel
+    vec2 UV = startUV;
+
+    float currentAngle = 0.0;
+    float X = 0.0; // Base Input
+    //Calculation Of Wave 
+    float currentWave = 0.0;
+
+    float innerPart = 0.0; //freq(X + time*speed)
+    float sinePart = 0.0; //a * sin(freq(X + time*speed))
+    float sharedDevPart = 0.0; //e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b
+
+    // Partial Derivatives for Wave
+    float ddx = 0.0; 
+    float ddy = 0.0; 
+
+    for (int i = 1; i <= numWaves; i++) {
+        X = calcRotate(UV, currentAngle);
+        innerPart = innerWave(X, wave.startFreq, wave.startSpeed, time);
+        sinePart = wave.startAmp * sin(innerPart);
+        currentWave = exp(sinePart - 1);  //Full Wave Function
+
+        //Calculating the partial derivatives
+        // for X: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * cos(theta)
+        // for Y: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * sin(theta)
+        sharedDevPart = currentWave * (wave.startAmp * cos(innerPart)) * wave.startFreq;
+
+  
+        ddx += sharedDevPart * cos(currentAngle);
+        ddy += sharedDevPart * sin(currentAngle); 
+
+        // Domain Warping thingy where it looks like the waves are pushing eachother
+        UV.x -= sharedDevPart * cos(currentAngle) * wave.warpStrength;
+        UV.y -= sharedDevPart * sin(currentAngle) * wave.warpStrength;
+        
+        wave.warpStrength *= 0.85;
+        // Adjusts Angle and Makes Waves Smaller
+        wave.startFreq *= wave.freqMult;
+        wave.startAmp *= wave.ampMult;
+        wave.startSpeed *= wave.speedMult;
+        currentAngle = float(i) * 0.5;
+   }
+
+    vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
+    calcNormal = vec3(matNormal * vec4(calcNormal, 0.0));
+
+    vec3 normal = normalize(calcNormal);
     vec3 viewDir = normalize(viewPos - fragPosition);
     vec3 lightDir = normalize(lightPos - fragPosition);
 
@@ -57,4 +165,15 @@ void main() {
     //finalColor = vec4(normal * 0.5 + 0.5, 1.0);// For testing normals
     //finalColor = colDiffuse;
     finalColor = scaledResult;
+}
+
+float calcRotate(vec2 UV, float angle) {
+    float final = UV.x * cos(angle) + UV.y * sin(angle);
+    return final;
+}
+
+float innerWave(float X, float freq, float speed, float time) {
+    // This calculates the freq(X + time*speed) Part
+    float sineResult = freq * (X + (time * speed));
+    return sineResult;
 }
