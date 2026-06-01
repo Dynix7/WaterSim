@@ -65,12 +65,12 @@ Camera camera = {
 
 //Positions
 Vector3 planeCenter = {0.0, 0.0, 0.0};
-Vector3 lightCenter = {180.0, 65.0, -10.0};
+Vector3 lightCenter = {270.0, 70.0, -15.0};
 Vector3 origin = {0.0, 0.0, 0.0};
 
 struct ShaderProperties wave = {
     // Vertex Shader
-    .numWaves = 128,
+    .numWaves = 24,
     
     .startAmp = 1.3,
     .startFreq = 0.3,
@@ -85,7 +85,7 @@ struct ShaderProperties wave = {
     .lightColor = (Vector4) {0.745, 0.918, 1.0, 1.0}, // Pretty Close to White
     .ambient = 0.55,
     .specFactor = 128.0,
-    .specMult = 5.5,
+    .specMult = 3.5,
     
     .viewPos = camera.position,
     .lightPos = lightCenter,

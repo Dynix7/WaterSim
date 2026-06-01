@@ -32,6 +32,7 @@ uniform float specMult;
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
+#define TAU 6.2831853
 
 // Wave Properties
 struct ShaderProperties {
@@ -86,7 +87,7 @@ void main() {
     // Calculates Normal Per Pixel
     vec2 UV = startUV;
 
-    float currentAngle = 0.0;
+    float currentAngle = 0.670923;
     float X = 0.0; // Base Input
     //Calculation Of Wave 
     float currentWave = 0.0;
@@ -123,7 +124,7 @@ void main() {
         wave.startFreq *= wave.freqMult;
         wave.startAmp *= wave.ampMult;
         wave.startSpeed *= wave.speedMult;
-        currentAngle = float(i) * 0.5;
+        currentAngle += 0.618033988749895;
    }
 
     vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));

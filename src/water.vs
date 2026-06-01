@@ -38,6 +38,7 @@ uniform float specMult;
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
+#define TAU 6.2831853
 
 // Wave Properties
 struct ShaderProperties {
@@ -95,8 +96,12 @@ void main() {
     vec2 UV = vertexPosition.xz;
     startUV = UV;
 
-    float currentAngle = 0.0;
+    float currentAngle = 0.670923;
     float X = 0.0; // Base Input
+
+    float sinAngle = 0.0;
+    float cosAngle = 0.0; //I WILL DO THIS LATER SINCE I'M LAZY FOR OPTIMIZATION TO SAVE CALUCLATING COS AND SIN MULTIPLE TIMES
+
     //Calculation Of Wave 
     float waveSum = 0.0;
     float currentWave = 0.0;
@@ -138,7 +143,7 @@ void main() {
         wave.startFreq *= wave.freqMult;
         wave.startAmp *= wave.ampMult;
         wave.startSpeed *= wave.speedMult;
-        currentAngle = float(i) * 0.5;
+        currentAngle += 0.618033988749895;
 
         waveSum += currentWave;
    }
